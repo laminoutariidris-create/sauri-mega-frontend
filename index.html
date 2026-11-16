@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sauri Mega</title>
+<style>
+*{box-sizing:border-box;font-family:Arial,sans-serif}
+body{margin:0;background:#fff;color:#111;padding-bottom:90px}
+header{background:#ff6a00;color:#fff;padding:16px;display:flex;justify-content:space-between;align-items:center}
+.logo{font-weight:900;font-size:22px}
+.card{margin:14px;background:#fff;border:1px solid #eee;border-radius:16px;padding:16px;box-shadow:0 2px 10px rgba(0,0,0,.05)}
+.balance{font-size:28px;font-weight:900}
+.btn{display:block;width:100%;padding:14px;border:0;border-radius:12px;font-weight:800;font-size:16px;margin-top:10px;cursor:pointer}
+.orange{background:#ff6a00;color:#fff}
+.green{background:#0a9e4a;color:#fff}
+.blue{background:#0a6cff;color:#fff}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.op{border:2px solid #eee;border-radius:12px;padding:12px;text-align:center;font-weight:800;cursor:pointer}
+.op.sel{border-color:#ff6a00;background:#fff3e8}
+input,select{width:100%;padding:13px;border:1px solid #ddd;border-radius:10px;margin-top:8px;font-size:16px}
+.amt{border:1px solid #ddd;border-radius:10px;padding:10px;text-align:center;font-weight:800;cursor:pointer}
+.amt.sel{background:#ff6a00;color:#fff}
+nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #eee;display:flex}
+nav button{flex:1;padding:14px;border:0;background:#fff;font-weight:800}
+nav button.act{color:#ff6a00}
+.small{color:#666;font-size:13px}
+.badge{padding:4px 8px;border-radius:20px;font-size:12px;font-weight:800}
+.wait{background:#ffe8cc;color:#a85b00}.ok{background:#d6ffd9;color:#0a7a2a}.no{background:#ffd6d6;color:#a00}
+</style>
+</head>
+<body>
+<header><div class="logo">SAURI MEGA</div><div id="langBtn">🌐 FR</div></header>
+
+<div id="page-home">
+<div class="card"><div>Solde</div><div class="balance" id="solde">0 F</div><div class="small" id="backendStatus">Connexion backend...</div><button class="btn green" onclick="show('pay')">Recharger mon solde</button></div>
+<div class="card"><h3>Acheter</h3><div class="grid"><button class="btn orange" onclick="show('buy');setType('CREDIT')">Acheter Crédit</button><button class="btn blue" onclick="show('buy');setType('MEGA')">Acheter Forfait Internet</button></div></div>
+<div class="card"><h3>Opérateurs</h3><div class="grid" id="ops"></div></div>
+<div class="card"><h3>Montants rapides</h3><div class="grid"><div class="amt" onclick="quick(500)">500F</div><div class="amt" onclick="quick(1000)">1000F</div><div class="amt" onclick="quick(2000)">2000F</div><div class="amt" onclick="quick(5000)">5000F</div></div></div>
+</div>
+
+<div id="page-buy" style="display:none">
+<div class="card"><h3 id="buyTitle">Acheter Crédit</h3>
+<label>Opérateur</label><div class="grid" id="ops2"></div>
+<label>Numéro +227</label><input id="phone" placeholder="96 00 00 00" inputmode="numeric">
+<label>Montant (F)</label><input id="amount" type="number" value="1000" min="100">
+<div class="grid" style="margin-top:10px"><div class="amt" onclick="setAmt(500)">500F</div><div class="amt" onclick="setAmt(1000)">1000F</div><div class="amt" onclick="setAmt(2000)">2000F</div><div class="amt" onclick="setAmt(5000)">5000F</div></div>
+<label style="display:block;margin-top:12px">Paiement</label><select id="payMethod"><option>Airtel Money</option><option>Moov Money</option><option>Visa</option></select>
+<div id="summary" class="small" style="margin-top:10px"></div>
+<button class="btn orange" onclick="goPay()">Payer maintenant</button>
+</div>
+</div>
+
+<div id="page-pay" style="display:none">
+<div class="card"><h3>Paiement</h3><p>Envoyez votre argent à ce numéro, puis uploadez la capture</p><div style="background:#fff3e8;padding:14px;border-radius:12px;text-align:center;font-size:22px;font-weight:900">+227 96 35 05 59</div><p class="small">Airtel Money - Laminou Mega</p><input type="file" id="shot" accept="image/*"><button class="btn green" onclick="confirmPay()">J'ai envoyé - Valider</button><div id="payMsg"></div></div>
+</div>
+
+<div id="page-history" style="display:none"><div class="card"><h3>Historique</h3><div id="hist"></div></div></div>
+<div id="page-profil" style="display:none"><div class="card"><h3>Profil</h3><p><b>Sauri Mega</b><br>info@laminou-mega.store<br>Tél: +227 96 35 05 59</p><button class="btn green" onclick="alert('Assistance WhatsApp: +227 96 35 05 59')">Assistance WhatsApp</button></div></div>
+
+<nav><button id="n-home" class="act" onclick="show('home')">Accueil</button><button id="n-buy" onclick="show('buy')">Acheter</button><button id="n-history" onclick="show('history');renderHist()">Historique</button><button id="n-profil" onclick="show('profil')">Profil</button></nav>
+
+<script>
+const BACKEND="https://sauri-mega-backend.onrender.com";
+let selOp="Airtel Niger", type="CREDIT", hist=JSON.parse(localStorage.getItem("sauri_hist")||"[]");
+const OPS=["Airtel Niger","Zamani","Moov Africa","Niger Telecom"];
+function renderOps(){document.getElementById("ops").innerHTML=OPS.map(o=>`<div class="op ${o===selOp?"sel":""}" onclick="pickOp('${o}')">${o}</div>`).join("");document.getElementById("ops2").innerHTML=OPS.map(o=>`<div class="op ${o===selOp?"sel":""}" onclick="pickOp('${o}')">${o}</div>`).join("");}
+function pickOp(o){selOp=o;renderOps();updateSummary();}
+function setType(t){type=t;document.getElementById("buyTitle").innerText=t==="CREDIT"?"Acheter Crédit":"Acheter Forfait Internet (MEGA)";updateSummary();}
+function setAmt(v){document.getElementById("amount").value=v;updateSummary();}
+function quick(v){show("buy");setAmt(v);}
+function updateSummary(){let a=document.getElementById("amount").value||0;document.getElementById("summary").innerHTML=`Opérateur: <b>${selOp}</b> | Type: <b>${type}</b> | Montant: <b>${a} F</b> | Frais: 0F | Total: <b>${a} F</b>`;}
+function show(p){["home","buy","pay","history","profil"].forEach(x=>document.getElementById("page-"+x).style.display=x===p?"block":"none");["home","buy","history","profil"].forEach(x=>{let b=document.getElementById("n-"+x);if(b)b.classList.toggle("act",x===p)});}
+function goPay(){if(!document.getElementById("phone").value){alert("Entrez le numéro");return}show("pay");}
+function confirmPay(){let amt=document.getElementById("amount").value,ph=document.getElementById("phone").value;let item={date:new Date().toLocaleString(),op:selOp,num:ph,amt:amt,type:type,status:"En attente"};hist.unshift(item);localStorage.setItem("sauri_hist",JSON.stringify(hist));document.getElementById("payMsg").innerHTML="<p style='color:green;font-weight:800'>✅ En attente de validation - Merci!</p>";setTimeout(()=>{show("history");renderHist()},800);}
+function renderHist(){if(!hist.length){document.getElementById("hist").innerHTML="<p class='small'>Aucun achat pour le moment</p>";return}document.getElementById("hist").innerHTML=hist.map(h=>`<div style="border-bottom:1px solid #eee;padding:10px 0"><b>${h.type} - ${h.amt}F</b><br><span class="small">${h.op} - ${h.num}<br>${h.date}</span> <span class="badge wait">${h.status}</span></div>`).join("");}
+renderOps();updateSummary();renderHist();
+fetch(BACKEND+"/").then(r=>r.json()).then(d=>{document.getElementById("backendStatus").innerText="✅ Backend LIVE: "+(d.status||"OK")}).catch(()=>{document.getElementById("backendStatus").innerText="Backend: en cours de réveil, réessayez dans 30s"});
+document.getElementById("langBtn").onclick=()=>alert("Langues: Français, Hausa, Zarma, Tamasheq, Fulfulde, English, Arabe - bientôt");
+</script>
+</body>
+</html>
